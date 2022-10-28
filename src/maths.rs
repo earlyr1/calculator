@@ -67,10 +67,11 @@ impl ExpressionToPolishTransformer {
         let mut stack: Vec::<Sign> = Vec::<Sign>::new();
         for lx in &self.expression {
             match lx {
-                F32(val) => res.push(val),
-                Sign(s) => {},
+                Lexem::F32(val) => res.push(Lexem::F32(*val)),
+                Lexem::Sign(s) => {},
             }
         }
+        res
     }
 }
 
