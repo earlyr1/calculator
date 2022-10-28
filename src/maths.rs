@@ -3,6 +3,7 @@ use std::error::Error;
 pub type Expression = Vec::<Lexem>;
 
 #[derive(PartialEq)]
+#[derive(Hash)]
 #[derive(Debug)]
 pub enum Sign {
     Add,
@@ -12,6 +13,7 @@ pub enum Sign {
     Pow,
     OBr, // open bracket
     CBr, // close bracket
+    Umn // unary minus
 }
 
 #[derive(Debug)]
@@ -44,6 +46,7 @@ impl ToSign for char {  // Returns Ok(sign) if valid sign, Ok(None) if valid num
             '^' => Ok(Some(Sign::Pow)),
             '(' => Ok(Some(Sign::OBr)),
             ')' => Ok(Some(Sign::CBr)),
+            '~' => Ok(Some(Sign::Umn)),
             _ => match "1234567890.".contains(*self) {
                 true => Ok(None),
                 false => Err("Invalid character".into())
@@ -52,6 +55,24 @@ impl ToSign for char {  // Returns Ok(sign) if valid sign, Ok(None) if valid num
     }
 }
 
+
+struct ExpressionToPolishTransformer {
+    priority: std::collections::HashMap<Sign, u8>,
+    expression: Expression
+}
+
+impl ExpressionToPolishTransformer {
+    fn Convert(&self) -> Expression {
+        let mut res = Expression::new();
+        let mut stack: Vec::<Sign> = Vec::<Sign>::new();
+        for lx in &self.expression {
+            match lx {
+                F32(val) => res.push(val),
+                Sign(s) => {},
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
