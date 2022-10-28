@@ -2,6 +2,7 @@ use std::error::Error;
 
 pub type Expression = Vec::<Lexem>;
 
+#[derive(PartialEq)]
 #[derive(Debug)]
 pub enum Sign {
     Add,
@@ -19,12 +20,22 @@ pub enum Lexem {
     F32(f32)
 }
 
-pub trait toSign {
-    fn toSign (&self) -> Result::<Option::<Sign>, Box<dyn Error>>;
+impl PartialEq for Lexem {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (&Lexem::Sign(ref a), &Lexem::Sign(ref b)) => a == b,
+            (&Lexem::F32(ref a), &Lexem::F32(ref b)) => a == b,
+            _ => false
+        }
+    }
 }
 
-impl toSign for char {
-    fn toSign (&self) -> Result::<Option::<Sign>, Box<dyn Error>> {
+pub trait ToSign {
+    fn ToSign (&self) -> Result::<Option::<Sign>, Box<dyn Error>>;
+}
+
+impl ToSign for char {  // Returns Ok(sign) if valid sign, Ok(None) if valid numerical symbol or err if invalid one
+    fn ToSign (&self) -> Result::<Option::<Sign>, Box<dyn Error>> {
         match *self {
             '+' => Ok(Some(Sign::Add)),
             '-' => Ok(Some(Sign::Sub)),
@@ -38,5 +49,34 @@ impl toSign for char {
                 false => Err("Invalid character".into())
             }
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::maths::{Sign, Lexem};
+
+    use super::ToSign;
+
+    #[test]
+    fn test_lexem_eq() {
+        let one = Lexem::Sign(Sign::Add);
+        let two = Lexem::Sign(Sign::Add);
+        assert_eq!(&one, &two);
+        let two = Lexem::Sign(Sign::Pow);
+        assert_ne!(&one, &two);
+        let two = Lexem::F32(5.7);
+        assert_ne!(&one, &two);
+    }
+
+    #[test]
+    fn test_to_sign() {
+        let c = '+';
+        assert_eq!(c.ToSign().unwrap().unwrap(), Sign::Add);
+        let c = '.';
+        assert_eq!(c.ToSign().unwrap(), None);
+        let c = 's';
+        assert!(c.ToSign().is_err());
     }
 }

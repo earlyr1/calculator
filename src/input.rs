@@ -2,10 +2,10 @@ use std::env;
 use std::error::Error;
 use std::io;
 
-use crate::maths::{Expression, Sign, Lexem, toSign};
+use crate::maths::{Expression, Lexem, ToSign};
 
 
-pub fn getCLIArgs () -> Result::<String, Box<dyn Error>> {
+pub fn GetCLIArgs () -> Result::<String, Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
         let mut res = args[1..].join("");
@@ -20,16 +20,16 @@ pub fn getCLIArgs () -> Result::<String, Box<dyn Error>> {
 
 
 
-pub trait splitToLexem {
-    fn splitToLexem (&self) -> Result::<Expression, Box<dyn Error>>;
+pub trait SplitToLexem {
+    fn SplitToLexem (&self) -> Result::<Expression, Box<dyn Error>>;
 }
 
-impl splitToLexem for String {
-    fn splitToLexem (&self) -> Result::<Expression, Box<dyn Error>> {
+impl SplitToLexem for String {
+    fn SplitToLexem (&self) -> Result::<Expression, Box<dyn Error>> {
         let mut res = Expression::new();
         let mut tmp = String::new();
         for chr in self.chars() {
-            let sym = chr.toSign()?;
+            let sym = chr.ToSign()?;
             match sym {
                 None => tmp.push(chr),
                 Some(sign) => {
@@ -63,22 +63,23 @@ impl splitToLexem for String {
 
 #[cfg(test)]
 mod tests {
+    use crate::maths::{Expression, Lexem, Sign};
+    use assert::equal;
+    use super::SplitToLexem;
     #[test]
-    fn test_splitToLexem() {
-        let test_string = String::From("3 +2-(6^3-85)");
-        let test_res = test_string.splitToLexem();
-        assert_eq!(test_res, vec![
-            Lexem::F32(3.), 
-            Lexem::Sign::Add, 
-            Lexem::F32(2.), 
-            Lexem::Sign::Sub, 
-            Lexem::Sign::OBr,
-            Lexem::F32(6.),
-            Lexem::Sign::Pow,
+    fn test_split_to_lexem() {
+        let s = String::from("3+(4.8-5^2.7)");
+        let e: Expression = s.SplitToLexem().unwrap();
+        equal(e, vec![
             Lexem::F32(3.),
-            Lexem::Sign::Sub,
-            Lexem::F32(85),
-            Lexem::Sign::CBr
-        ]);
+            Lexem::Sign(Sign::Add),
+            Lexem::Sign(Sign::OBr),
+            Lexem::F32(4.8),
+            Lexem::Sign(Sign::Sub),
+            Lexem::F32(5.),
+            Lexem::Sign(Sign::Pow),
+            Lexem::F32(2.7),
+            Lexem::Sign(Sign::CBr)
+        ])
     }
 }
