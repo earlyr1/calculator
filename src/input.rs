@@ -62,7 +62,7 @@ impl SplitToLexem for String {
 
 
 #[cfg(test)]
-mod tests {
+mod test_input {
     use crate::maths::{Expression, Lexem, Sign};
     use assert::equal;
     use super::SplitToLexem;
