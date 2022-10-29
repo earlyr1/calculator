@@ -11,7 +11,7 @@ impl<T> TopElement<T> for Vec<T> {
     fn top(&self) -> Option<&T> {
         match self.len() {
             0 => None,
-            N => Some(&self[N - 1])
+            n => Some(&self[n - 1])
         }
     }
 }
@@ -50,11 +50,11 @@ impl PartialEq for Lexem {
 }
 
 pub trait ToSign {
-    fn ToSign (&self) -> Result::<Option::<Sign>, Box<dyn Error>>;
+    fn to_sign (&self) -> Result::<Option::<Sign>, Box<dyn Error>>;
 }
 
 impl ToSign for char {  // Returns Ok(sign) if valid sign, Ok(None) if valid numerical symbol or err if invalid one
-    fn ToSign (&self) -> Result::<Option::<Sign>, Box<dyn Error>> {
+    fn to_sign (&self) -> Result::<Option::<Sign>, Box<dyn Error>> {
         match *self {
             '+' => Ok(Some(Sign::Add)),
             '-' => Ok(Some(Sign::Sub)),
@@ -97,7 +97,7 @@ impl Default for ExpressionToPolishTransformer {
 }
 
 impl ExpressionToPolishTransformer {
-    pub fn Convert(&self) -> Result<Expression, Box<dyn Error>> {
+    pub fn convert(&self) -> Result<Expression, Box<dyn Error>> {
         match &(*self).expression {
             None => Err("Calling shit".into()),
             Some(expr) => {
@@ -167,21 +167,21 @@ mod test_maths {
     #[test]
     fn test_to_sign() {
         let c = '+';
-        assert_eq!(c.ToSign().unwrap().unwrap(), Sign::Add);
+        assert_eq!(c.to_sign().unwrap().unwrap(), Sign::Add);
         let c = '.';
-        assert_eq!(c.ToSign().unwrap(), None);
+        assert_eq!(c.to_sign().unwrap(), None);
         let c = 's';
-        assert!(c.ToSign().is_err());
+        assert!(c.to_sign().is_err());
     }
     #[test]
     fn test_conversion() {
-        let expr = String::from("~4+(5-5^7)*3-5.8+16*2*~3").SplitToLexem().unwrap();
+        let expr = String::from("~4+(5-5^7)*3-5.8+16*2*~3").split_to_lexem().unwrap();
         let mut opn = ExpressionToPolishTransformer {
             ..Default::default()
         };
         //
         opn.expression = Some(expr);
-        let pol_expr = opn.Convert();
+        let pol_expr = opn.convert();
         assert_eq!(pol_expr.unwrap(), vec![
             Lexem::F32(4.0),
             Lexem::Sign(Sign::Umn),

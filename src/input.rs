@@ -1,11 +1,10 @@
 use std::env;
 use std::error::Error;
 use std::io;
-
 use crate::maths::{Expression, Lexem, ToSign};
 
 
-pub fn GetCLIArgs () -> Result::<String, Box<dyn Error>> {
+pub fn get_cliargs () -> Result::<String, Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
         let mut res = args[1..].join("");
@@ -21,15 +20,15 @@ pub fn GetCLIArgs () -> Result::<String, Box<dyn Error>> {
 
 
 pub trait SplitToLexem {
-    fn SplitToLexem (&self) -> Result::<Expression, Box<dyn Error>>;
+    fn split_to_lexem (&self) -> Result::<Expression, Box<dyn Error>>;
 }
 
 impl SplitToLexem for String {
-    fn SplitToLexem (&self) -> Result::<Expression, Box<dyn Error>> {
+    fn split_to_lexem (&self) -> Result::<Expression, Box<dyn Error>> {
         let mut res = Expression::new();
         let mut tmp = String::new();
         for chr in self.chars() {
-            let sym = chr.ToSign()?;
+            let sym = chr.to_sign()?;
             match sym {
                 None => tmp.push(chr),
                 Some(sign) => {
@@ -69,7 +68,7 @@ mod test_input {
     #[test]
     fn test_split_to_lexem() {
         let s = String::from("3+(4.8-5^2.7)");
-        let e: Expression = s.SplitToLexem().unwrap();
+        let e: Expression = s.split_to_lexem().unwrap();
         equal(e, vec![
             Lexem::F32(3.),
             Lexem::Sign(Sign::Add),
