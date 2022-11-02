@@ -1,17 +1,18 @@
 use std::collections::HashMap;
-use std::error::Error;
+
+use crate::exceptions::Exception;
 
 pub type Expression = Vec::<Lexem>;
 
 pub trait TopElement<T> {
-    fn top(&self) -> Option<&T>;
+    fn top(&self) -> Option<T>;
 }
 
-impl<T> TopElement<T> for Vec<T> {
-    fn top(&self) -> Option<&T> {
+impl<T: Copy> TopElement<T> for Vec<T> {
+    fn top(&self) -> Option<T> {
         match self.len() {
             0 => None,
-            n => Some(&self[n - 1])
+            n => Some(self[n - 1])
         }
     }
 }
@@ -50,11 +51,11 @@ impl PartialEq for Lexem {
 }
 
 pub trait ToSign {
-    fn to_sign (&self) -> Result::<Option::<Sign>, Box<dyn Error>>;
+    fn to_sign (&self) -> Result::<Option::<Sign>, Exception>;
 }
 
 impl ToSign for char {  // Returns Ok(sign) if valid sign, Ok(None) if valid numerical symbol or err if invalid one
-    fn to_sign (&self) -> Result::<Option::<Sign>, Box<dyn Error>> {
+    fn to_sign (&self) -> Result::<Option::<Sign>, Exception> {
         match *self {
             '+' => Ok(Some(Sign::Add)),
             '-' => Ok(Some(Sign::Sub)),
@@ -63,10 +64,9 @@ impl ToSign for char {  // Returns Ok(sign) if valid sign, Ok(None) if valid num
             '^' => Ok(Some(Sign::Pow)),
             '(' => Ok(Some(Sign::OBr)),
             ')' => Ok(Some(Sign::CBr)),
-            '~' => Ok(Some(Sign::Umn)),
             _ => match "1234567890.".contains(*self) {
                 true => Ok(None),
-                false => Err("Invalid character".into())
+                false => Err(Exception::InvalidCharacter)
             }
         }
     }
@@ -97,9 +97,9 @@ impl Default for ExpressionToPolishTransformer {
 }
 
 impl ExpressionToPolishTransformer {
-    pub fn convert(&self) -> Result<Expression, Box<dyn Error>> {
+    pub fn convert(&self) -> Result<Expression, Exception> {
         match &(*self).expression {
-            None => Err("Calling shit".into()),
+            None => return Err(Exception::EmptyExpression),
             Some(expr) => {
                 let mut res = Expression::new();
                 let mut stack: Vec::<Sign> = Vec::<Sign>::new();
@@ -112,7 +112,7 @@ impl ExpressionToPolishTransformer {
                                 Sign::CBr => {
                                     loop {
                                         match stack.pop() {
-                                            None => return Err("Wrong expression".into()),
+                                            None => return Err(Exception::UnbalancedBrackets),
                                             Some(Sign::OBr) => break,
                                             Some(tmp_sgn_1) => res.push(Lexem::Sign(tmp_sgn_1))
                                         }
@@ -123,8 +123,11 @@ impl ExpressionToPolishTransformer {
                                         match stack.top() {
                                             None | Some(Sign::OBr) => break,
                                             Some(tmp_sgn_1) => {
-                                                if self.priority[tmp_sgn_1] < self.priority[s] {break}
-                                                res.push(Lexem::Sign(stack.pop().unwrap()));
+                                                if self.priority[&tmp_sgn_1] < self.priority[s] {break}
+                                                match stack.pop() {
+                                                    None => panic!("Why is stack empty when I just checked it?!"), // should never occur
+                                                    Some(_) => res.push(Lexem::Sign(tmp_sgn_1))
+                                                };
                                             }
                                         }
                                     }                                        
@@ -167,41 +170,55 @@ mod test_maths {
     #[test]
     fn test_to_sign() {
         let c = '+';
-        assert_eq!(c.to_sign().unwrap().unwrap(), Sign::Add);
+        assert_eq!(
+            c.to_sign()
+            .unwrap_or_else(|_| {panic!("Test failed")})
+            .unwrap_or_else(|| {panic!("Test failed")}), 
+            Sign::Add
+        );
         let c = '.';
-        assert_eq!(c.to_sign().unwrap(), None);
+        assert_eq!(c.to_sign().unwrap_or_else(|_| {panic!("Test failed")}), None);
         let c = 's';
         assert!(c.to_sign().is_err());
     }
     #[test]
     fn test_conversion() {
-        let expr = String::from("~4+(5-5^7)*3-5.8+16*2*~3").split_to_lexem().unwrap();
-        let mut opn = ExpressionToPolishTransformer {
-            ..Default::default()
-        };
-        //
-        opn.expression = Some(expr);
-        let pol_expr = opn.convert();
-        assert_eq!(pol_expr.unwrap(), vec![
-            Lexem::F32(4.0),
-            Lexem::Sign(Sign::Umn),
-            Lexem::F32(5.0),
-            Lexem::F32(5.0),
-            Lexem::F32(7.0),
-            Lexem::Sign(Sign::Pow),
-            Lexem::Sign(Sign::Sub),
-            Lexem::F32(3.0),
-            Lexem::Sign(Sign::Mul),
-            Lexem::Sign(Sign::Add),
-            Lexem::F32(5.8),
-            Lexem::Sign(Sign::Sub),
-            Lexem::F32(16.0),
-            Lexem::F32(2.0),
-            Lexem::Sign(Sign::Mul),
-            Lexem::F32(3.0),
-            Lexem::Sign(Sign::Umn),
-            Lexem::Sign(Sign::Mul),
-            Lexem::Sign(Sign::Add)
-        ]);
+        let resexpr = String::from("-4+(5-5^7)*3-5.8+16*2*-3").split_to_lexem();
+        match resexpr {
+            Err(_) => panic!("Test failed"),
+            Ok(expr) => {
+                let mut opn = ExpressionToPolishTransformer {
+                    ..Default::default()
+                };
+                //
+                opn.expression = Some(expr);
+                let pol_expr = opn.convert();
+                match pol_expr {
+                    Err(_) => panic!("Test failed"),
+                    Ok(p) => assert_eq!(p, vec![
+                        Lexem::F32(4.0),
+                        Lexem::Sign(Sign::Umn),
+                        Lexem::F32(5.0),
+                        Lexem::F32(5.0),
+                        Lexem::F32(7.0),
+                        Lexem::Sign(Sign::Pow),
+                        Lexem::Sign(Sign::Sub),
+                        Lexem::F32(3.0),
+                        Lexem::Sign(Sign::Mul),
+                        Lexem::Sign(Sign::Add),
+                        Lexem::F32(5.8),
+                        Lexem::Sign(Sign::Sub),
+                        Lexem::F32(16.0),
+                        Lexem::F32(2.0),
+                        Lexem::Sign(Sign::Mul),
+                        Lexem::F32(3.0),
+                        Lexem::Sign(Sign::Umn),
+                        Lexem::Sign(Sign::Mul),
+                        Lexem::Sign(Sign::Add)
+                    ])
+                }
+            }
+        }
+        
     }
 }
